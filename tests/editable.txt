@@ -1,0 +1,28 @@
+mod
+let
+i, j, k, l, m, n: integer;
+  x, y, z: float;
+  a, b, c: bool;
+  s : struct{
+    field1: bool,
+    field2: integer,
+    field3: bool,
+  };
+end_let
+
+/* multi-line
+comment */
+
+{
+  k = i * (l + m) + n * j - 48;
+  x = (y - z) * 3.86 + x / 5.00;
+  c = (a and false) or not(b);
+  for i in 0..5{
+    x = x + i;
+  }
+  s.field1 = c;
+  c = true;
+  /* comment */
+}
+
+end_mod

@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from .types import TypeDesc # Относительный импорт внутри пакета
+from semantic_analyzer.types import TypeDesc
 
 class SymbolCategory(Enum):
     """Категория символа: переменная или тип."""

@@ -1,6 +1,6 @@
 from lexical_analysis.analyzer import LexicalAnalyzer
 from semantic_analyzer.analyzer import SemanticAnalyzer
-from tokens import *  # Импортируем все токены
+from tokens import *
 
 
 class SyntacticalAnalyzer:
@@ -107,7 +107,6 @@ class SyntacticalAnalyzer:
             for name_token in name_list_tokens:
                 self.semantic_analyzer.declare_variable(name_token, type_token)
 
-    # ДОБАВЬТЕ ЭТОТ НОВЫЙ МЕТОД В КЛАСС
     def parse_field_decls(self):
         """
         Разбирает список полей внутри структуры.
@@ -173,8 +172,6 @@ class SyntacticalAnalyzer:
         else:
             raise SyntaxError(f"Ожидался оператор, но получен {current_token.name if current_token else 'EOF'}")
 
-    # ДОБАВЬТЕ ЭТИ ДВА НОВЫХ МЕТОДА В КЛАСС
-
     def parse_loop(self):
         """
         Разбирает цикл for.
@@ -207,11 +204,11 @@ class SyntacticalAnalyzer:
         """
         self.parse_factor()  # Разбираем начало диапазона
 
-        token = self._current_token()
-        if isinstance(token, RangeToken) and token.value == '..':
+        current_token = self._current_token()
+        if isinstance(current_token, RangeToken) and current_token.value == '..':
             self._advance()
         else:
-            raise SyntaxError(f"Ожидался '..', но получен {token.value if token else 'EOF'}")
+            raise SyntaxError(f"Ожидался '..', но получен {current_token.value if current_token else 'EOF'}")
 
         self.parse_factor()  # Разбираем конец диапазона
 
@@ -230,7 +227,7 @@ class SyntacticalAnalyzer:
             # Действие {A3}
             self.semantic_analyzer.process_identifier_lvalue(id1_token)
 
-    # --- Методы для разбора выражений (замена ExpressionAnalyzer) ---
+    # --- Методы для разбора выражений ---
 
     def parse_expression(self):
         # R23, R24: Expression -> Term { AddOp Term }

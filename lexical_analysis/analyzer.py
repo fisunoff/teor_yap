@@ -1,21 +1,18 @@
 import re
-from typing import List
 
-# Импортируем обновленные, "чистые" токены
 from tokens import (
     IdentifierToken, DigitalConstToken, RangeToken,
     WORDS_TOKENS_MAPPING,
     OPEN_BRACKET_TOKEN, CLOSE_BRACKET_TOKEN, ASSIGNMENT_TOKEN, COLON_TOKEN, COMMA_TOKEN,
-    UNDERSCORE_TOKEN, POINT_TOKEN, SEMICOLON_TOKEN, START_TOKEN, END_TOKEN,
+    POINT_TOKEN, SEMICOLON_TOKEN, START_TOKEN, END_TOKEN,
     PLUS_TOKEN, MINUS_TOKEN, MULT_TOKEN, DIV_TOKEN
 )
-from . import const
 
 __all__ = [
     'LexicalAnalyzer'
 ]
 
-# --- Определяем спецификацию токенов с помощью регулярных выражений ---
+# Определяем спецификацию токенов с помощью регулярных выражений
 TOKEN_SPECIFICATION = [
     ('SKIP', r'[ \t]+'),
     ('NEWLINE', r'\n'),
@@ -53,11 +50,6 @@ TOKEN_SPECIFICATION = [
 ]
 
 tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in TOKEN_SPECIFICATION)
-
-# --- ОТЛАДОЧНЫЙ PRINT #1 ---
-print("--- СКОМПИЛИРОВАННАЯ РЕГУЛЯРКА ---")
-print(tok_regex)
-print("---------------------------------")
 
 TOKEN_MAPPING = {
     'MOD': WORDS_TOKENS_MAPPING['mod'],
@@ -105,13 +97,9 @@ class LexicalAnalyzer:
 
     def analyze(self):
         self.tokens = []
-        # --- ОТЛАДОЧНЫЙ PRINT #3 ---
-        print("--- ПРОЦЕСС РАЗБОРА ---")
         for mo in re.finditer(tok_regex, self.code, re.DOTALL):
             kind = mo.lastgroup
             value = mo.group()
-
-            print(f"Найдено: kind='{kind}', value={repr(value)}")  # Печатаем каждый найденный токен
 
             if kind in ['SKIP', 'COMMENT', 'NEWLINE']:
                 continue
@@ -126,11 +114,13 @@ class LexicalAnalyzer:
             elif kind in TOKEN_MAPPING:
                 self.tokens.append(TOKEN_MAPPING[kind])
             elif kind == 'MISMATCH':
-                # Ошибка все еще здесь, но теперь мы увидим, что было до нее
                 raise RuntimeError(f'Неожиданный символ: {value}')
 
         return self.tokens
 
     def write(self, filename='lexical_analysis_result.txt'):
-        # ... (без изменений)
-        pass
+        """
+        Сейчас вместо этого вывод в консоль.
+        """
+        with open(filename, 'w', encoding='UTF-8') as f:
+            f.write('\n'.join(map(str, self.tokens)))

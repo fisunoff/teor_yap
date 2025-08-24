@@ -1,8 +1,8 @@
-from .symbols import Symbol, SymbolCategory, SymbolTable
-from .types import TYPE_INT, TYPE_FLOAT, TYPE_BOOL, TypeDesc, TypeForm
-from .exceptions import *  # Все наши семантические исключения
-from tokens import *  # Все токены
-from syntactical_analysis.commands import AssignmentCommand, commands, GotoCommand, ConditionCommand  # Наш IR
+from semantic_analyzer.symbols import Symbol, SymbolCategory, SymbolTable
+from semantic_analyzer.types import TYPE_INT, TYPE_FLOAT, TYPE_BOOL, TypeDesc, TypeForm
+from semantic_analyzer.exceptions import *
+from tokens import *
+from syntactical_analysis.commands import AssignmentCommand, commands, GotoCommand, ConditionCommand
 from syntactical_analysis.temp_var import TempVar
 
 
@@ -17,7 +17,7 @@ class SemanticAnalyzer:
 
         self.type_stack = []
         self.operand_stack = []
-        self.code = commands  # Используем ваш глобальный список команд
+        self.code = commands  # Используем глобальный список команд
 
     def _initialize_builtins(self):
         """Добавляет предопределенные типы в глобальную область видимости."""
@@ -73,8 +73,6 @@ class SemanticAnalyzer:
     def process_boolean(self, bool_token):
         # Действие {A11}
         self.type_stack.append(TYPE_BOOL)
-        # ИСПРАВЛЕНИЕ: Используем .value, которое хранит лексему 'true'/'false'
-        # Но для этого надо исправить лексер. Давайте пока просто сделаем так:
         bool_value_str = 'true' if bool_token.name == 'True' else 'false'
         self.operand_stack.append(bool_value_str)
 
@@ -85,10 +83,6 @@ class SemanticAnalyzer:
         """
         struct_name = struct_token.value
         field_name = field_token.value
-
-        # --- ЦЕЛЕВОЙ ОТЛАДОЧНЫЙ PRINT ---
-        print(f"\n--- ОТЛАДКА: process_field_access для '{struct_name}.{field_name}' ---")
-        # ------------------------------------
 
         # 1. Ищем символ структуры в таблице
         struct_sym = self.current_scope.lookup(struct_name)
@@ -112,7 +106,7 @@ class SemanticAnalyzer:
 
         # В качестве операнда можно поместить сам символ поля,
         # но для генерации кода нам понадобится и структура, и поле.
-        # Давайте создадим временный объект или кортеж.
+        # Создадим временный объект или кортеж.
         field_accessor = (struct_sym, field_sym)
         self.operand_stack.append(field_accessor)
 
@@ -132,7 +126,7 @@ class SemanticAnalyzer:
         # Проверяем, чем является lvalue_op
         if isinstance(lvalue_op, tuple):  # Это доступ к полю (struct_sym, field_sym)
             struct_sym, field_sym = lvalue_op
-            # Ваш IR не имеет команды ASSIGN_IDX, поэтому эмулируем ее строкой
+            # IR не имеет команды ASSIGN_IDX, поэтому эмулируем ее строкой
             target_name = f"{struct_sym.name}.{field_sym.name}"
         else:  # Это обычная переменная
             target_name = getattr(lvalue_op, 'name', str(lvalue_op))
@@ -150,7 +144,8 @@ class SemanticAnalyzer:
         if op_token in [PLUS_TOKEN, MINUS_TOKEN, MULT_TOKEN, DIV_TOKEN]:
             if type1 not in [TYPE_INT, TYPE_FLOAT] or type1 != type2:
                 raise TypeIncompatibilityError(
-                    "Операнды для арифметической операции должны быть int или float одного типа.")
+                    "Операнды для арифметической операции должны быть int или float одного типа.",
+                )
             result_type = type1
             op_map = {PLUS_TOKEN: '+', MINUS_TOKEN: '-', MULT_TOKEN: '*', DIV_TOKEN: '/'}
             op_symbol = op_map[op_token]
@@ -163,7 +158,7 @@ class SemanticAnalyzer:
             op_symbol = op_symbol_map[op_token]
 
         else:
-            # ВОЗВРАЩАЕМ ПРОВЕРКУ НА НЕИЗВЕСТНУЮ ОПЕРАЦИЮ
+            # Возвращаем проверку на неизвестную операцию
             raise NotImplementedError(f"Бинарная операция для токена {op_token.name} не реализована")
 
         # Генерация кода
@@ -180,7 +175,7 @@ class SemanticAnalyzer:
         self.operand_stack.append(temp_var)
 
     def gen_halt(self):
-        # Команда останова, если она вам нужна
+        # Команда останова
         # self.code.append(("HALT", None, None, None))
         pass
 
@@ -239,7 +234,7 @@ class SemanticAnalyzer:
     def process_not_operation(self):
         """
         Обрабатывает унарную операцию NOT.
-        Действие {A12} из нашей таблицы СУТ.
+        Действие {A12} из таблицы СУТ.
         """
         # 1. Извлекаем тип и операнд со стеков
         operand_type = self.type_stack.pop()
@@ -250,16 +245,14 @@ class SemanticAnalyzer:
             raise InvalidOperandTypeError(operation='not', expected_type='bool')
 
         # 3. Генерируем код
-        # В вашем старом коде была сложная генерация. Давайте пока сделаем просто.
         source_operand_name = getattr(operand, 'name', str(operand))
 
         # Создаем временную переменную для результата
         temp_var = TempVar(type_='bool')  # Результат 'not' всегда bool
 
-        # Генерируем команду. Ваш IR не имеет унарной команды NOT,
-        # поэтому мы эмулируем ее как в вашем старом `NotOperationHandler`.
+        # Генерируем команду. IR не имеет унарной команды NOT,
+        # поэтому мы эмулируем ее.
         # Для этого нам понадобится доступ к командам и меткам.
-        # Давайте пока сделаем более простую, "арифметическую" версию
         AssignmentCommand.create(target=temp_var.name, source=f"not {source_operand_name}")
 
         # 4. Помещаем результат обратно в стеки

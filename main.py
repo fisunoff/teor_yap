@@ -36,8 +36,8 @@ def main():
 
         print("\n--- АНАЛИЗ УСПЕШНО ЗАВЕРШЕН ---")
         print("\n--- Сгенерированный промежуточный код ---")
-        for command in generated_code:
-            print(command)
+        for i, command in enumerate(generated_code):
+            print(f"{i:3}: {command}")
 
     except (SyntaxError, SemanticError) as e:
         print(f"\nОШИБКА АНАЛИЗА: {e}")

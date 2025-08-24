@@ -1,0 +1,9 @@
+mod
+let
+  i: integer;
+  i: float; /* Ошибка: 'i' уже объявлена */
+end_let
+{
+  i = 5;
+}
+end_mod

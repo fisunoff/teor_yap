@@ -1,0 +1,8 @@
+mod
+let
+  i: integer;
+end_let
+{
+  i.field = 5; /* Ошибка: 'i' - это integer, а не структура */
+}
+end_mod

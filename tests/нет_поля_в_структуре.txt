@@ -1,0 +1,10 @@
+mod
+let
+  s : struct{
+    field1: bool,
+  };
+end_let
+{
+  s.field2 = true; /* Ошибка: в структуре 's' нет поля 'field2' */
+}
+end_mod

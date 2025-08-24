@@ -1,0 +1,9 @@
+mod
+let
+  i: integer;
+  c: bool;
+end_let
+{
+  i = i + c; /* Ошибка: нельзя сложить integer и bool */
+}
+end_mod

@@ -1,0 +1,9 @@
+mod
+let
+  i: integer;
+  j: integer @; // Недопустимый символ @
+end_let
+{
+  i = 5;
+}
+end_mod

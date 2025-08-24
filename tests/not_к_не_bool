@@ -1,0 +1,9 @@
+mod
+let
+  i: integer;
+  c: bool;
+end_let
+{
+  c = not i; /* Ошибка: 'not' применим только к bool */
+}
+end_mod

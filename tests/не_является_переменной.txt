@@ -1,0 +1,8 @@
+mod
+let
+  i: integer;
+end_let
+{
+  i = integer + 5; /* Ошибка: 'integer' - это тип, а не переменная */
+}
+end_mod

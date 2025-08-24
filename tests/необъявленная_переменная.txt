@@ -1,0 +1,8 @@
+mod
+let
+  i: integer;
+end_let
+{
+  i = j + 5; /* Переменная 'j' не объявлена */
+}
+end_mod

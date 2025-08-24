@@ -1,0 +1,10 @@
+mod
+let
+  i: integer;
+  k: integer;
+end_let
+{
+  i = 5   /* Пропущена точка с запятой */
+  k = 10;
+}
+end_mod

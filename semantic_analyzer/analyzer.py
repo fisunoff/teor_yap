@@ -49,6 +49,9 @@ class SemanticAnalyzer:
 
         var_symbol = Symbol(var_name, SymbolCategory.VAR, type_symbol.type_ref)
 
+        var_symbol.offset = self.current_offset
+        self.current_offset += var_symbol.type_ref.size
+
         try:
             self.current_scope.add(var_symbol)
         except NameError:
@@ -220,7 +223,7 @@ class SemanticAnalyzer:
 
         # 6. Создаем символ для самой переменной-структуры
         struct_var_symbol = Symbol(struct_var_name, SymbolCategory.VAR, new_struct_type)
-        # struct_var_symbol.offset = self.current_offset # Если нужно глобальное смещение
+        struct_var_symbol.offset = self.current_offset # Глобальное смещение
 
         # 7. Добавляем переменную-структуру в текущую (глобальную) область видимости
         try:
@@ -229,7 +232,7 @@ class SemanticAnalyzer:
             raise IdentifierRedeclarationError(struct_var_name)
 
         # 8. Обновляем глобальное смещение
-        # self.current_offset += struct_size
+        self.current_offset += struct_size
 
     def process_not_operation(self):
         """
@@ -326,3 +329,39 @@ class SemanticAnalyzer:
         # Адрес выхода из цикла - это текущая позиция в коде
         exit_pos = len(self.code)
         loop_info["exit_goto"].goto_command_ind = exit_pos
+
+    def print_memory_layout(self):
+        """
+        Выводит в консоль информацию о распределении памяти для всех
+        объявленных переменных.
+        """
+        print("\n--- Карта распределения памяти ---")
+        # Создаем красивый заголовок таблицы
+        header = f"{'Имя':<15} | {'Тип':<20} | {'Адрес (смещение)':>18} | {'Размер':>8}"
+        print(header)
+        print("-" * len(header))
+
+        # Перебираем все символы в глобальной области видимости
+        for symbol in self.global_scope._symbols.values():
+            # Нас интересуют только переменные (не типы)
+            if symbol.category == SymbolCategory.VAR:
+                type_ref = symbol.type_ref
+                type_name = "unknown"
+
+                # Определяем строковое имя типа
+                if type_ref.form == TypeForm.STRUCT:
+                    type_name = "struct"
+                else:
+                    # Ищем имя базового типа в нашем словаре
+                    for t_obj, t_name in self.type_to_name_map.items():
+                        if t_obj is type_ref:
+                            type_name = t_name
+                            break
+
+                # Форматируем и выводим строку
+                line = (f"{symbol.name:<15} | {type_name:<20} | "
+                        f"{symbol.offset:>18} | {type_ref.size:>8}")
+                print(line)
+
+        print("-" * len(header))
+        print(f"Итого занято памяти: {self.current_offset} байт")

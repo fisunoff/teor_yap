@@ -59,6 +59,8 @@ class SyntacticalAnalyzer:
             self.parse_stmt_seq()
         self._expect(END_TOKEN)  # '}'
 
+        self.semantic_analyzer.print_memory_layout()
+
     def parse_var_decls(self):
         # R4, R5: VarDecls -> VarDecl ; { VarDecl ; }
         self.parse_var_decl()

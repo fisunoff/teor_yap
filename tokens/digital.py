@@ -1,36 +1,21 @@
-from lexical_analysis import const
 from tokens.token import Token
+# Удаляем импорт const, он здесь больше не нужен
 
 __all__ = [
     'DigitalConstToken',
-    'digital_consts_table',
 ]
 
-
 class DigitalConstToken(Token):
-    """Токен для числовых констант"""
+    """
+    Упрощенный токен для числовых констант.
+    Хранит лексему и информацию о том, есть ли в ней точка.
+    """
+    def __init__(self, lexeme: str, is_float: bool):
+        # Поле value теперь хранит саму лексему
+        super().__init__(name='num', code=26, value=lexeme)
+        self.is_float = is_float # Этот флаг поможет семантическому анализатору определить тип
 
-    def __init__(self, value, attr, type):
-        super().__init__(name='num', code=26, value=value)
-        # Само числовое значение
-        self.attr = attr
-        self.type = type
+    def __str__(self):
+        return f'<{self.name}, {self.value}>'
 
-    @classmethod
-    def get_or_create(cls, lexeme, type):
-        """Находим в таблице числовых констант токен с attr==attr или создаём его"""
-        attr = float(lexeme)
-        if type == const.INT:
-            attr = int(attr)
-
-        found = list(filter(lambda x: x.attr == attr and x.type == type, digital_consts_table))
-        if found:
-            return found[0]
-        token_value = len(digital_consts_table)
-        new_token = DigitalConstToken(value=token_value, attr=attr, type=type)
-        digital_consts_table.append(new_token)
-        return new_token
-
-
-# Таблица числовых констант
-digital_consts_table = []
+# Таблица digital_consts_table и метод get_or_create УДАЛЕНЫ.

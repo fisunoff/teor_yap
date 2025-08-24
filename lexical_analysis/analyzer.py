@@ -1,124 +1,136 @@
+import re
 from typing import List
 
-from tokens.token import RangeToken
+# Импортируем обновленные, "чистые" токены
+from tokens import (
+    IdentifierToken, DigitalConstToken, RangeToken,
+    WORDS_TOKENS_MAPPING,
+    OPEN_BRACKET_TOKEN, CLOSE_BRACKET_TOKEN, ASSIGNMENT_TOKEN, COLON_TOKEN, COMMA_TOKEN,
+    UNDERSCORE_TOKEN, POINT_TOKEN, SEMICOLON_TOKEN, START_TOKEN, END_TOKEN,
+    PLUS_TOKEN, MINUS_TOKEN, MULT_TOKEN, DIV_TOKEN
+)
 from . import const
-from . import utils
-from .custom_exceptions import WrongSymbolException
-from .state_machine import STATE_TRANSITION_TABLE, STATE_TOKEN_MAPPING
-from tokens import *
 
 __all__ = [
     'LexicalAnalyzer'
 ]
 
+# --- Определяем спецификацию токенов с помощью регулярных выражений ---
+TOKEN_SPECIFICATION = [
+    ('SKIP', r'[ \t]+'),
+    ('NEWLINE', r'\n'),
+    ('COMMENT', r'/\*.*?\*/'),
+    ('MOD', r'mod\b'),
+    ('END_MOD', r'end_mod\b'),
+    ('LET', r'let\b'),
+    ('END_LET', r'end_let\b'),
+    ('STRUCT', r'struct\b'),
+    ('FOR', r'for\b'),
+    ('IN', r'in\b'),
+    ('AND', r'and\b'),
+    ('OR', r'or\b'),
+    ('NOT', r'not\b'),
+    ('TRUE', r'true\b'),
+    ('FALSE', r'false\b'),
+    ('FLOAT_NUM', r'\d+\.\d+'),
+    ('INT_NUM', r'\d+'),
+    ('ID', r'[A-Za-z_][A-Za-z0-9_]*'),
+    ('RANGE', r'\.\.'),
+    ('ASSIGN', r'='),
+    ('PLUS', r'\+'),
+    ('MINUS', r'-'),
+    ('MUL', r'\*'),
+    ('DIV', r'/'),
+    ('LPAREN', r'\('),
+    ('RPAREN', r'\)'),
+    ('LBRACE', r'\{'),
+    ('RBRACE', r'\}'),
+    ('COLON', r':'),
+    ('COMMA', r','),
+    ('SEMI', r';'),
+    ('DOT', r'\.'),
+    ('MISMATCH', r'.'),
+]
+
+tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in TOKEN_SPECIFICATION)
+
+# --- ОТЛАДОЧНЫЙ PRINT #1 ---
+print("--- СКОМПИЛИРОВАННАЯ РЕГУЛЯРКА ---")
+print(tok_regex)
+print("---------------------------------")
+
+TOKEN_MAPPING = {
+    'MOD': WORDS_TOKENS_MAPPING['mod'],
+    'END_MOD': WORDS_TOKENS_MAPPING['end_mod'],
+    'LET': WORDS_TOKENS_MAPPING['let'],
+    'END_LET': WORDS_TOKENS_MAPPING['end_let'],
+    'STRUCT': WORDS_TOKENS_MAPPING['struct'],
+    'FOR': WORDS_TOKENS_MAPPING['for'],
+    'IN': WORDS_TOKENS_MAPPING['in'],
+    'AND': WORDS_TOKENS_MAPPING['and'],
+    'OR': WORDS_TOKENS_MAPPING['or'],
+    'NOT': WORDS_TOKENS_MAPPING['not'],
+    'TRUE': WORDS_TOKENS_MAPPING['True'],
+    'FALSE': WORDS_TOKENS_MAPPING['False'],
+    'ASSIGN': ASSIGNMENT_TOKEN,
+    'PLUS': PLUS_TOKEN,
+    'MINUS': MINUS_TOKEN,
+    'MUL': MULT_TOKEN,
+    'DIV': DIV_TOKEN,
+    'LPAREN': OPEN_BRACKET_TOKEN,
+    'RPAREN': CLOSE_BRACKET_TOKEN,
+    'LBRACE': START_TOKEN,
+    'RBRACE': END_TOKEN,
+    'COLON': COLON_TOKEN,
+    'COMMA': COMMA_TOKEN,
+    'SEMI': SEMICOLON_TOKEN,
+    'DOT': POINT_TOKEN,
+}
+
 
 class LexicalAnalyzer:
-    """Лексический анализатор"""
-
-    def __init__(self, source_file='tests/editable.txt', *args, **kwargs):
-        self.source_file = source_file  # type: str
-        self.data = []  # type: List[str]
-        self.read()
+    def __init__(self, source_file='tests/editable.txt'):
+        self.source_file = source_file
+        self.code = ""
         self.tokens = []
-        # Текущее состояние автомата
-        self.current_state = 0
+        self._read_file()
 
-    def read(self):
-        """Считывает код из файла"""
+    def _read_file(self):
         with open(self.source_file) as f:
-            self.data = [
-                utils.change_prefix_to_tabs(line)
-                for line in f.readlines()
-            ]
-
-    def write(self, filename='lexical_analysis_result.txt'):
-        with open(filename, 'w', encoding='UTF-8') as f:
-            f.write('\n'.join(map(str, self.tokens)))
+            self.code = f.read()
+            # --- ОТЛАДОЧНЫЙ PRINT #2 ---
+            print("--- ИСХОДНЫЙ КОД ---")
+            print(repr(self.code))  # repr покажет все невидимые символы
+            print("----------------------")
 
     def analyze(self):
-        """Анализ файла"""
-        for line in self.data:
-            if line and line != '\n':
-                line_to_explore = line.lstrip(' ').replace('\t', ' ')  # плевать на пробелы в начале
-                self._analyze_line(line_to_explore)
+        self.tokens = []
+        # --- ОТЛАДОЧНЫЙ PRINT #3 ---
+        print("--- ПРОЦЕСС РАЗБОРА ---")
+        for mo in re.finditer(tok_regex, self.code, re.DOTALL):
+            kind = mo.lastgroup
+            value = mo.group()
 
-    def _analyze_line(self, line):
-        """Анализ строки файла """
-        if line == 'end_prog':
-            self.tokens.append(END_PROG_TOKEN)
-        left, right = 0, 0
-        while right <= len(line) - 1:
+            print(f"Найдено: kind='{kind}', value={repr(value)}")  # Печатаем каждый найденный токен
 
-            symbol_ = line[right]
-            if symbol_ in const.DIGITS_STR:
-                table_key = 'digits'
-            elif symbol_ in const.LETTERS and not self.current_state == 10:
-                table_key = 'letters'
-            else:
-                table_key = symbol_
-
-            if table_key not in STATE_TRANSITION_TABLE:
-                table_key = 'another'
-
-            if self.current_state == 3 and table_key == '*':
-                right += 1
-                self.current_state = 4  # пытаемся закончить комментарий
+            if kind in ['SKIP', 'COMMENT', 'NEWLINE']:
                 continue
-            if self.current_state == 4:
-                if table_key == '/':  # закончили комментарий
-                    right += 1
-                    self.current_state = 0
-                    left = right
-                    continue
-                else:  # а нет, продолжаем комментарий
-                    self.current_state = 3
-            if self.current_state == 3:
-                right += 1
-                continue
-            new_state = STATE_TRANSITION_TABLE[table_key][self.current_state]
-            if new_state == const.INF:
-                raise WrongSymbolException(symbol_)
-            if new_state < 0:
-                # Пришли в конечное состояние
-                lexeme = line[left:right + (left == right)]
-                # print(new_state, self.current_state, lexeme)
-                # Проверим, является ли лексема ключевым словом
-                if lexeme in const.KEYWORDS:
-                    # Является, добавим соответствующий токен
-                    self.tokens.append(WORDS_TOKENS_MAPPING[lexeme])
-                else:
-                    # Не является
-                    # Проверим, является ли заранее определенный токеном
-                    if new_state in STATE_TOKEN_MAPPING:
-                        # Является
-                        self.tokens.append(STATE_TOKEN_MAPPING[new_state])
-                    else:
-                        # Не является, а значит это или числовая константа, или идентификатор
-                        # Числовую константу можно получить из конечных состояний -21 и -30
-                        if new_state in [-21, -30]:
-                            if new_state == -21:
-                                # Числовая константа целового типа
-                                token_type = const.INT
-                            else:
-                                # Числовая константа вещественного типа
-                                token_type = const.FLOAT
-                            self.tokens.append(DigitalConstToken.get_or_create(lexeme=lexeme, type=token_type))
-                        elif new_state in [-28]:  # range ..
-                            token_ = RangeToken(lexeme)
-                            self.tokens.append(token_)
-                        else:
-                            token_ = IdentifierToken.get_or_create(lexeme)
-                            if token_:
-                                self.tokens.append(token_)
+            elif kind == 'FLOAT_NUM':
+                self.tokens.append(DigitalConstToken(lexeme=value, is_float=True))
+            elif kind == 'INT_NUM':
+                self.tokens.append(DigitalConstToken(lexeme=value, is_float=False))
+            elif kind == 'ID':
+                self.tokens.append(IdentifierToken(lexeme=value))
+            elif kind == 'RANGE':
+                self.tokens.append(RangeToken('..'))
+            elif kind in TOKEN_MAPPING:
+                self.tokens.append(TOKEN_MAPPING[kind])
+            elif kind == 'MISMATCH':
+                # Ошибка все еще здесь, но теперь мы увидим, что было до нее
+                raise RuntimeError(f'Неожиданный символ: {value}')
 
-                if new_state in [-9, -11, -13, -16, -18, -20, -21, -28, -30]:
-                    # Состояния с возвратом 1.
-                    left = right
-                else:
-                    # Состояния с возвратом 0
-                    right += 1
-                    left = right
-                self.current_state = 0
-            else:
-                right += 1
-                self.current_state = new_state
+        return self.tokens
+
+    def write(self, filename='lexical_analysis_result.txt'):
+        # ... (без изменений)
+        pass

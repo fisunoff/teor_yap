@@ -18,7 +18,7 @@ comment */
   x = (y - z) * 3.86 + x / 5.00;
   c = (a and false) or not(b);
   for i in 0..5{
-    x = x + i;
+    k = k + i;
   }
   s.field1 = c;
   c = true;

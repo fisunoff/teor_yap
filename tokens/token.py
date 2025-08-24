@@ -1,5 +1,6 @@
 __all__ = [
     'Token',
+    'RangeToken',
     'OPEN_BRACKET_TOKEN',
     'CLOSE_BRACKET_TOKEN',
     'ASSIGNMENT_TOKEN',
@@ -27,14 +28,33 @@ class Token:
     def __str__(self):
         return f'<{self.name}, {self.value}>'
 
+    def __eq__(self, other):
+        """
+        Переопределяем оператор сравнения (==).
+        Два токена считаются равными, если у них совпадают имя, код и значение.
+        """
+        if not isinstance(other, Token):
+            return NotImplemented  # Не сравниваем с другими типами
+
+        return (self.name == other.name and
+                self.code == other.code and
+                self.value == other.value)
+
+    def __hash__(self):
+        """
+        Реализуем хэширование.
+        Объект становится хэшируемым и может быть использован как ключ в словаре.
+        """
+        # Хэш вычисляется от кортежа полей, которые участвуют в сравнении
+        return hash((self.name, self.code, self.value))
+
 
 class RangeToken(Token):
-    def __init__(self, attr_name):
-        super().__init__(name='range', code=30, value=0)
-        self.attr_name = attr_name
+    def __init__(self, lexeme: str):
+        super().__init__(name='range', code=30, value=lexeme)
 
     def __str__(self):
-        return f'<{self.name}, {self.value}> ({self.attr_name})'
+        return f'<{self.name}, {self.value}>'
 
 
 OPEN_BRACKET_TOKEN = Token(name='(', code=15, value=0)

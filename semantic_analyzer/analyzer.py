@@ -73,7 +73,10 @@ class SemanticAnalyzer:
     def process_boolean(self, bool_token):
         # Действие {A11}
         self.type_stack.append(TYPE_BOOL)
-        self.operand_stack.append(bool_token.value)
+        # ИСПРАВЛЕНИЕ: Используем .value, которое хранит лексему 'true'/'false'
+        # Но для этого надо исправить лексер. Давайте пока просто сделаем так:
+        bool_value_str = 'true' if bool_token.name == 'True' else 'false'
+        self.operand_stack.append(bool_value_str)
 
     def process_field_access(self, struct_token, field_token):
         """
@@ -143,34 +146,32 @@ class SemanticAnalyzer:
         op2 = self.operand_stack.pop()
         op1 = self.operand_stack.pop()
 
-        # Определяем операцию и проверяем типы
+        # Определяем операцию, проверяем типы и получаем символ операции
         if op_token in [PLUS_TOKEN, MINUS_TOKEN, MULT_TOKEN, DIV_TOKEN]:
             if type1 not in [TYPE_INT, TYPE_FLOAT] or type1 != type2:
-                raise TypeIncompatibilityError()
+                raise TypeIncompatibilityError(
+                    "Операнды для арифметической операции должны быть int или float одного типа.")
             result_type = type1
-            op_symbol = op_token.name  # '+' или '-' и т.д.
+            op_map = {PLUS_TOKEN: '+', MINUS_TOKEN: '-', MULT_TOKEN: '*', DIV_TOKEN: '/'}
+            op_symbol = op_map[op_token]
+
         elif op_token in [AND_TOKEN, OR_TOKEN]:
             if type1 != TYPE_BOOL or type2 != TYPE_BOOL:
-                raise TypeIncompatibilityError()
+                raise TypeIncompatibilityError(f"Операнды для операции '{op_token.value}' должны быть типа bool.")
             result_type = TYPE_BOOL
-            op_symbol = op_token.value  # 'and' или 'or'
+            op_symbol_map = {AND_TOKEN: 'and', OR_TOKEN: 'or'}
+            op_symbol = op_symbol_map[op_token]
+
         else:
-            raise NotImplementedError(f"Операция {op_token.name} не реализована")
+            # ВОЗВРАЩАЕМ ПРОВЕРКУ НА НЕИЗВЕСТНУЮ ОПЕРАЦИЮ
+            raise NotImplementedError(f"Бинарная операция для токена {op_token.name} не реализована")
 
         # Генерация кода
         source_op1 = getattr(op1, 'name', str(op1))
         source_op2 = getattr(op2, 'name', str(op2))
 
         result_type_name = self.type_to_name_map.get(result_type, "unknown_type")
-        temp_var = TempVar(type_=result_type_name)  # Теперь мы передаем строку
-
-        if op_token in [PLUS_TOKEN, MINUS_TOKEN, MULT_TOKEN, DIV_TOKEN]:
-            # Для арифметики используем value из токена, например, 0 для '+'
-            # Но для читаемости лучше так:
-            op_map = {PLUS_TOKEN: '+', MINUS_TOKEN: '-', MULT_TOKEN: '*', DIV_TOKEN: '/'}
-            op_symbol = op_map[op_token]
-        else:  # AND, OR
-            op_symbol = op_token.value
+        temp_var = TempVar(type_=result_type_name)
 
         AssignmentCommand.create(target=temp_var.name, source=f"{source_op1} {op_symbol} {source_op2}")
 
